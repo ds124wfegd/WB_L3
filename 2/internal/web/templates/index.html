@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>🔗 URL Shortener</h1>
+        
+        <!-- Shorten Form -->
+        <div class="section">
+            <h2>Shorten URL</h2>
+            <form id="shortenForm">
+                <input type="url" id="urlInput" placeholder="Enter URL to shorten" required>
+                <input type="text" id="customInput" placeholder="Custom short name (optional)">
+                <button type="submit">Shorten</button>
+            </form>
+            <div id="result" class="result"></div>
+        </div>
+
+        <!-- URLs List -->
+        <div class="section">
+            <h2>Your URLs</h2>
+            <button onclick="loadURLs()">Refresh URLs</button>
+            <div id="urlsList" class="urls-list"></div>
+        </div>
+
+        <!-- Analytics -->
+        <div class="section">
+            <h2>Analytics</h2>
+            <input type="text" id="analyticsInput" placeholder="Enter short URL to view analytics">
+            <button onclick="loadAnalytics()">View Analytics</button>
+            <div id="analyticsResult" class="analytics-result"></div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
