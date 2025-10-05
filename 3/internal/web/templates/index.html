@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Комментарии</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Система комментариев</h1>
+        
+        <div class="search-section">
+            <h3>Поиск комментариев</h3>
+            <input type="text" id="searchQuery" placeholder="Введите текст для поиска...">
+            <button class="btn btn-search" id="searchBtn">Найти</button>
+            <button class="btn" id="showAllBtn">Показать все</button>
+        </div>
+
+        <div class="comment-form">
+            <h3>Добавить комментарий</h3>
+            <input type="text" id="author" placeholder="Ваше имя" required>
+            <textarea id="text" placeholder="Текст комментария" rows="3" required></textarea>
+            <button class="btn btn-submit" id="submitCommentBtn">Отправить</button>
+        </div>
+
+        <!-- Панель сортировки и информации -->
+        <div class="comments-controls">
+            <div class="sort-section">
+                <label for="sortSelect">Сортировка:</label>
+                <select id="sortSelect">
+                    <option value="created_at_desc">Сначала новые</option>
+                    <option value="created_at_asc">Сначала старые</option>
+                    <option value="author">По автору (А-Я)</option>
+                </select>
+            </div>
+            <div id="pageInfo" class="page-info"></div>
+        </div>
+
+        <div id="commentsTree"></div>
+        <div id="searchResults" class="search-results hidden"></div>
+        
+        <!-- Пагинация -->
+        <div class="pagination" id="pagination"></div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
