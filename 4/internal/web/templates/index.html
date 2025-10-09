@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Processor</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🖼️ Image Processor</h1>
+            <div class="subtitle">Upload images for automatic processing (resize, thumbnail, watermark)</div>
+        </header>
+        
+        <div class="upload-section">
+            <div class="upload-area" id="uploadArea">
+                <div style="font-size: 3rem; margin-bottom: 15px;">📁</div>
+                <h3>Upload Your Image</h3>
+                <p>Drag & drop or click to select</p>
+                <button class="upload-btn" onclick="uploadImage()">Select Image</button>
+                <input type="file" id="imageInput" accept="image/jpeg,image/png,image/gif" style="display: none;">
+            </div>
+            <div id="selectedFile" class="selected-file"></div>
+        </div>
+
+        <div id="imagesGrid" class="images-grid">
+            <div class="empty-state">
+                <div class="icon">🖼️</div>
+                <h3>No images uploaded yet</h3>
+                <p>Upload an image to see it here</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal для просмотра изображений -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">×</button>
+            <h3 id="modalTitle" class="modal-title">Image Preview</h3>
+            <img id="modalImage" class="modal-image" src="" alt="Preview">
+            <div id="modalInfo" style="margin-top: 15px; color: #666;"></div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>

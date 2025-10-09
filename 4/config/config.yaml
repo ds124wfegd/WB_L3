@@ -1,0 +1,13 @@
+Server:
+  appVersion: "1.0.0"
+  host: "0.0.0.0"
+  port: "8080"
+  timeout: 4s
+  idle_timeout: "60s"
+  environment: "local"
+  mode: "debug"
+
+app:
+  short_url_length: 6
+  cache_ttl: "1h"
+  base_url: "http://localhost:8080"
