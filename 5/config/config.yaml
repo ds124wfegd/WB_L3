@@ -1,0 +1,49 @@
+Server:
+  appVersion: "1.0.0"
+  host: "0.0.0.0"
+  port: "8080"
+  timeout: 4s
+  idle_timeout: "60s"
+  environment: "local"
+  mode: "debug"
+
+database:
+  host: "url-shortener-postgres"
+  port: 5432
+  user: "postgres"
+  password: "password"
+  dbname: "url_shortener"
+  sslmode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
+
+app:
+  short_url_length: 6
+  cache_ttl: "1h"
+  base_url: "http://localhost:8080"
+
+jwt:
+  secret: "your-super-secret-jwt-key-change-in-production"
+  expiration: 24h
+
+email:
+  from: "noreply@eventbooker.com"
+  host: "smtp.gmail.com"
+  port: 587
+  username: "your-email@gmail.com"
+  password: "your-app-password"
+  enabled: true
+
+telegram:
+  bot_token: "your-telegram-bot-token"
+  chat_id: "your-chat-id"
+  enabled: false
+
+booking:
+  default_timeout: 30
+  max_seats: 1000
+
+worker:
+  cleanup_interval: 1
+  batch_size: 100

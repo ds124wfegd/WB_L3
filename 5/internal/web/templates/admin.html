@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel - Event Booking</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #2c3e50; color: white; padding: 1rem; margin-bottom: 2rem; border-radius: 5px; }
+        .card { background: white; padding: 1.5rem; margin-bottom: 1rem; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        input, textarea, select { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; }
+        button { background: #3498db; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+        button:hover { background: #2980b9; }
+        .btn-danger { background: #e74c3c; }
+        .btn-danger:hover { background: #c0392b; }
+        .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+        .event-card { border-left: 4px solid #3498db; }
+        .booking { background: #ecf0f1; padding: 0.8rem; margin: 0.5rem 0; border-radius: 4px; }
+        .booking.pending { border-left: 4px solid #f39c12; }
+        .booking.confirmed { border-left: 4px solid #27ae60; }
+        .booking.expired { border-left: 4px solid #e74c3c; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 1rem; text-align: center; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .stat-number { font-size: 2rem; font-weight: bold; color: #2c3e50; }
+        .tabs { display: flex; margin-bottom: 1rem; border-bottom: 1px solid #ddd; }
+        .tab { padding: 0.7rem 1.5rem; cursor: pointer; border-bottom: 3px solid transparent; }
+        .tab.active { border-bottom-color: #3498db; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Event Booking Admin Panel</h1>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('events')">Events</div>
+            <div class="tab" onclick="showTab('create')">Create Event</div>
+            <div class="tab" onclick="showTab('bookings')">Bookings</div>
+        </div>
+
+        <!-- Create Event Tab -->
+        <div id="create-tab" class="tab-content">
+            <div class="card">
+                <h2>Create New Event</h2>
+                <form id="createEventForm">
+                    <div class="form-group">
+                        <label for="title">Event Title</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="date">Event Date & Time</label>
+                        <input type="datetime-local" id="date" name="date" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="total_seats">Total Seats</label>
+                        <input type="number" id="total_seats" name="total_seats" min="1" required>
+                    </div>
+                    <button type="submit">Create Event</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Events Tab -->
+        <div id="events-tab" class="tab-content">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="total-events">0</div>
+                    <div>Total Events</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="total-bookings">0</div>
+                    <div>Total Bookings</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pending-bookings">0</div>
+                    <div>Pending Bookings</div>
+                </div>
+            </div>
+
+            <div id="eventsList">
+                <h2>Events</h2>
+                <div class="events-grid" id="eventsGrid">
+                    <!-- Events will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Bookings Tab -->
+        <div id="bookings-tab" class="tab-content" style="display: none;">
+            <div class="card">
+                <h2>All Bookings</h2>
+                <div id="allBookings">
+                    <!-- All bookings will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = { id: 1, name: 'Admin', role: 'admin' }; // Mock user
+
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(tabName + '-tab').style.display = 'block';
+            event.currentTarget.classList.add('active');
+            
+            if (tabName === 'events') {
+                loadEvents();
+            } else if (tabName === 'bookings') {
+                loadAllBookings();
+            }
+        }
+
+        // Create Event Form
+        document.getElementById('createEventForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const eventData = {
+                title: formData.get('title'),
+                description: formData.get('description'),
+                date: formData.get('date'),
+                total_seats: parseInt(formData.get('total_seats'))
+            };
+
+            try {
+                const response = await fetch('/api/v1/events', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(eventData)
+                });
+
+                if (response.ok) {
+                    alert('Event created successfully!');
+                    e.target.reset();
+                    loadEvents();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                alert('Error creating event: ' + error.message);
+            }
+        });
+
+        // Load Events
+        async function loadEvents() {
+            try {
+                const response = await fetch('/api/v1/events');
+                const events = await response.json();
+                
+                document.getElementById('total-events').textContent = events.length;
+                
+                const eventsGrid = document.getElementById('eventsGrid');
+                eventsGrid.innerHTML = '';
+                
+                let totalBookings = 0;
+                let pendingBookings = 0;
+
+                events.forEach(event => {
+                    totalBookings += event.booked_seats;
+                    
+                    const eventCard = document.createElement('div');
+                    eventCard.className = 'card event-card';
+                    eventCard.innerHTML = `
+                        <h3>${event.title}</h3>
+                        <p>${event.description || 'No description'}</p>
+                        <p><strong>Date:</strong> ${new Date(event.date).toLocaleString()}</p>
+                        <p><strong>Seats:</strong> ${event.available_seats} / ${event.total_seats} available</p>
+                        <p><strong>Booked:</strong> ${event.booked_seats}</p>
+                        <div class="progress" style="background: #ecf0f1; height: 10px; border-radius: 5px; margin: 10px 0;">
+                            <div style="background: #27ae60; height: 100%; width: ${(event.booked_seats / event.total_seats) * 100}%; border-radius: 5px;"></div>
+                        </div>
+                        <button onclick="viewEventDetails(${event.id})" style="margin-top: 10px;">View Details</button>
+                    `;
+                    eventsGrid.appendChild(eventCard);
+                });
+
+                document.getElementById('total-bookings').textContent = totalBookings;
+                document.getElementById('pending-bookings').textContent = pendingBookings;
+            } catch (error) {
+                console.error('Error loading events:', error);
+            }
+        }
+
+        function viewEventDetails(eventId) {
+            window.location.href = `/event.html?id=${eventId}`;
+        }
+
+        async function loadAllBookings() {
+            try {
+                // This would typically fetch all bookings from an admin endpoint
+                const response = await fetch('/api/v1/admin/bookings');
+                const bookings = await response.json();
+                
+                const container = document.getElementById('allBookings');
+                container.innerHTML = '';
+                
+                bookings.forEach(booking => {
+                    const bookingEl = document.createElement('div');
+                    bookingEl.className = `booking ${booking.status}`;
+                    bookingEl.innerHTML = `
+                        <strong>Booking #${booking.id}</strong>
+                        <p>Event: ${booking.event_title}</p>
+                        <p>User: ${booking.user_name}</p>
+                        <p>Seats: ${booking.seats}</p>
+                        <p>Status: <span class="status">${booking.status}</span></p>
+                        <p>Created: ${new Date(booking.created_at).toLocaleString()}</p>
+                        ${booking.status === 'pending' ? 
+                            `<button onclick="confirmBooking(${booking.id})" class="btn-confirm">Confirm</button>
+                             <button onclick="cancelBooking(${booking.id})" class="btn-danger">Cancel</button>` : 
+                            ''}
+                    `;
+                    container.appendChild(bookingEl);
+                });
+            } catch (error) {
+                console.error('Error loading bookings:', error);
+            }
+        }
+
+        async function confirmBooking(bookingId) {
+            try {
+                const response = await fetch(`/api/v1/events/1/confirm`, { // event ID is not used in confirm
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ booking_id: bookingId })
+                });
+
+                if (response.ok) {
+                    alert('Booking confirmed!');
+                    loadAllBookings();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                alert('Error confirming booking: ' + error.message);
+            }
+        }
+
+        // Initial load
+        loadEvents();
+    </script>
+</body>
+</html>

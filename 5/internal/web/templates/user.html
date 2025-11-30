@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Event Booking</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; background: #f4f4f4; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: #2c3e50; color: white; padding: 1rem; margin-bottom: 2rem; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; }
+        .card { background: white; padding: 1.5rem; margin-bottom: 1rem; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .event-card { border-left: 4px solid #3498db; transition: transform 0.2s; cursor: pointer; }
+        .event-card:hover { transform: translateY(-2px); }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: bold; }
+        input, textarea, select { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem; }
+        button { background: #3498db; color: white; border: none; padding: 0.7rem 1.5rem; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+        button:hover { background: #2980b9; }
+        button:disabled { background: #bdc3c7; cursor: not-allowed; }
+        .btn-success { background: #27ae60; }
+        .btn-success:hover { background: #229954; }
+        .btn-warning { background: #f39c12; }
+        .btn-warning:hover { background: #e67e22; }
+        .events-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+        .booking-card { background: #ecf0f1; padding: 1rem; margin: 0.5rem 0; border-radius: 4px; }
+        .booking-card.pending { border-left: 4px solid #f39c12; }
+        .booking-card.confirmed { border-left: 4px solid #27ae60; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 2rem; border-radius: 5px; max-width: 500px; width: 90%; }
+        .user-info { display: flex; align-items: center; gap: 1rem; }
+        .avatar { width: 40px; height: 40px; background: #3498db; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Event Booking System</h1>
+            <div class="user-info">
+                <div class="avatar" id="userAvatar">U</div>
+                <div>
+                    <div id="userName">Guest</div>
+                    <div style="font-size: 0.8rem;" id="userEmail"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Available Events</h2>
+            <div class="events-grid" id="eventsGrid">
+                <!-- Events will be loaded here -->
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>My Bookings</h2>
+            <div id="myBookings">
+                <!-- User's bookings will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Booking Modal -->
+    <div class="modal" id="bookingModal">
+        <div class="modal-content">
+            <h2>Book Seats</h2>
+            <div id="modalEventInfo"></div>
+            <form id="bookingForm">
+                <input type="hidden" id="modalEventId">
+                <div class="form-group">
+                    <label for="seats">Number of Seats</label>
+                    <input type="number" id="seats" name="seats" min="1" value="1" required>
+                </div>
+                <div class="form-group">
+                    <label for="reservationTimeout">Reservation Time (minutes)</label>
+                    <select id="reservationTimeout" name="reservation_timeout">
+                        <option value="15">15 minutes</option>
+                        <option value="30" selected>30 minutes</option>
+                        <option value="60">1 hour</option>
+                        <option value="120">2 hours</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 1rem;">
+                    <button type="submit" class="btn-success">Book Now</button>
+                    <button type="button" onclick="closeModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <h2>Login / Register</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="telegramId">Telegram ID (optional, for notifications)</label>
+                    <input type="text" id="telegramId" name="telegram_id">
+                </div>
+                <button type="submit" style="width: 100%; margin-top: 1rem;">Continue</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let currentEvent = null;
+
+        // Check if user is logged in
+        function checkAuth() {
+            const userData = localStorage.getItem('currentUser');
+            if (userData) {
+                currentUser = JSON.parse(userData);
+                updateUserInterface();
+            } else {
+                showLoginModal();
+            }
+        }
+
+        function showLoginModal() {
+            document.getElementById('loginModal').style.display = 'flex';
+        }
+
+        function closeLoginModal() {
+            document.getElementById('loginModal').style.display = 'none';
+        }
+
+        function closeModal() {
+            document.getElementById('bookingModal').style.display = 'none';
+        }
+
+        // Login Form
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const userData = {
+                email: formData.get('email'),
+                name: formData.get('name'),
+                telegram_id: formData.get('telegram_id')
+            };
+
+            try {
+                // Try to register or login
+                const response = await fetch('/api/v1/users/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    currentUser = user;
+                    localStorage.setItem('currentUser', JSON.stringify(user));
+                    updateUserInterface();
+                    closeLoginModal();
+                    loadEvents();
+                    loadMyBookings();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+
+        function updateUserInterface() {
+            if (currentUser) {
+                document.getElementById('userName').textContent = currentUser.name;
+                document.getElementById('userEmail').textContent = currentUser.email;
+                document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+            }
+        }
+
+        // Load Events
+        async function loadEvents() {
+            try {
+                const response = await fetch('/api/v1/events');
+                const events = await response.json();
+                
+                const eventsGrid = document.getElementById('eventsGrid');
+                eventsGrid.innerHTML = '';
+                
+                events.forEach(event => {
+                    const eventCard = document.createElement('div');
+                    eventCard.className = 'card event-card';
+                    eventCard.innerHTML = `
+                        <h3>${event.title}</h3>
+                        <p>${event.description || 'No description'}</p>
+                        <p><strong>Date:</strong> ${new Date(event.date).toLocaleString()}</p>
+                        <p><strong>Available Seats:</strong> ${event.available_seats}</p>
+                        <div class="progress" style="background: #ecf0f1; height: 10px; border-radius: 5px; margin: 10px 0;">
+                            <div style="background: ${event.available_seats > 0 ? '#27ae60' : '#e74c3c'}; height: 100%; width: ${(event.available_seats / event.total_seats) * 100}%; border-radius: 5px;"></div>
+                        </div>
+                        <button onclick="openBookingModal(${event.id})" ${event.available_seats === 0 ? 'disabled' : ''}>
+                            ${event.available_seats === 0 ? 'Sold Out' : 'Book Now'}
+                        </button>
+                    `;
+                    eventsGrid.appendChild(eventCard);
+                });
+            } catch (error) {
+                console.error('Error loading events:', error);
+            }
+        }
+
+        function openBookingModal(eventId) {
+            if (!currentUser) {
+                showLoginModal();
+                return;
+            }
+
+            // Find event details
+            fetch(`/api/v1/events/${eventId}`)
+                .then(response => response.json())
+                .then(event => {
+                    currentEvent = event;
+                    document.getElementById('modalEventId').value = event.id;
+                    document.getElementById('modalEventInfo').innerHTML = `
+                        <h3>${event.title}</h3>
+                        <p>Available seats: ${event.available_seats}</p>
+                    `;
+                    document.getElementById('seats').max = event.available_seats;
+                    document.getElementById('bookingModal').style.display = 'flex';
+                })
+                .catch(error => {
+                    alert('Error loading event details: ' + error.message);
+                });
+        }
+
+        // Booking Form
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const bookingData = {
+                event_id: parseInt(document.getElementById('modalEventId').value),
+                user_id: currentUser.id,
+                seats: parseInt(formData.get('seats')),
+                reservation_timeout: parseInt(formData.get('reservation_timeout'))
+            };
+
+            try {
+                const response = await fetch(`/api/v1/events/${bookingData.event_id}/book`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(bookingData)
+                });
+
+                if (response.ok) {
+                    const booking = await response.json();
+                    alert('Booking created successfully! You have ' + (bookingData.reservation_timeout) + ' minutes to confirm.');
+                    closeModal();
+                    loadEvents();
+                    loadMyBookings();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                alert('Error creating booking: ' + error.message);
+            }
+        });
+
+        // Load User's Bookings
+        async function loadMyBookings() {
+            if (!currentUser) return;
+
+            try {
+                const response = await fetch(`/api/v1/users/${currentUser.id}/bookings`);
+                const bookings = await response.json();
+                
+                const container = document.getElementById('myBookings');
+                container.innerHTML = '';
+                
+                if (bookings.length === 0) {
+                    container.innerHTML = '<p>You have no bookings yet.</p>';
+                    return;
+                }
+                
+                bookings.forEach(booking => {
+                    const bookingCard = document.createElement('div');
+                    bookingCard.className = `booking-card ${booking.status}`;
+                    
+                    const timeLeft = booking.status === 'pending' ? 
+                        `Time left: ${Math.max(0, Math.round((new Date(booking.expires_at) - new Date()) / 60000))} minutes` : '';
+                    
+                    bookingCard.innerHTML = `
+                        <h4>Booking #${booking.id}</h4>
+                        <p><strong>Event ID:</strong> ${booking.event_id}</p>
+                        <p><strong>Seats:</strong> ${booking.seats}</p>
+                        <p><strong>Status:</strong> <span class="status">${booking.status}</span></p>
+                        <p><strong>Created:</strong> ${new Date(booking.created_at).toLocaleString()}</p>
+                        <p>${timeLeft}</p>
+                        ${booking.status === 'pending' ? 
+                            `<button onclick="confirmMyBooking(${booking.id})" class="btn-success">Confirm Payment</button>` : 
+                            ''}
+                    `;
+                    container.appendChild(bookingCard);
+                });
+            } catch (error) {
+                console.error('Error loading bookings:', error);
+            }
+        }
+
+        async function confirmMyBooking(bookingId) {
+            try {
+                const response = await fetch(`/api/v1/events/1/confirm`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ booking_id: bookingId })
+                });
+
+                if (response.ok) {
+                    alert('Booking confirmed successfully!');
+                    loadMyBookings();
+                    loadEvents();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                alert('Error confirming booking: ' + error.message);
+            }
+        }
+
+        // Initialize
+        checkAuth();
+        if (currentUser) {
+            loadEvents();
+            loadMyBookings();
+        }
+
+        // Refresh bookings every 30 seconds to update time left
+        setInterval(() => {
+            if (currentUser) {
+                loadMyBookings();
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
